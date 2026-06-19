@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Profile — Auth Learning Hub{% endblock %}
+
+{% block content %}
+{% if user %}
+<div style="max-width:520px; margin:0 auto;">
+    <h2 style="color:#2c3e50;">Your Profile</h2>
+
+    <div class="card" style="text-align:center; padding:2rem;">
+        {% if user.picture %}
+            <img src="{{ user.picture }}" alt="avatar"
+                 style="width:96px;height:96px;border-radius:50%;border:3px solid #2c3e50;margin-bottom:1rem;">
+        {% else %}
+            <div style="font-size:4rem;margin-bottom:1rem;">👤</div>
+        {% endif %}
+        <h3 style="margin:0 0 .25rem;">{{ user.username }}</h3>
+        <p style="margin:0;color:#666;">{{ user.email }}</p>
+        <span style="display:inline-block;margin-top:.75rem;padding:.2rem .8rem;
+                     background:#d4edda;color:#155724;border-radius:12px;font-size:.8rem;font-weight:600;">
+            ✓ Verified via Google
+        </span>
+    </div>
+
+    <div class="card">
+        <h3>Account details</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:.9rem;">
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:.6rem .5rem;color:#666;width:140px;">Email</td>
+                <td style="padding:.6rem .5rem;"><strong>{{ user.email }}</strong></td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:.6rem .5rem;color:#666;">Username</td>
+                <td style="padding:.6rem .5rem;">{{ user.username }}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:.6rem .5rem;color:#666;">First login</td>
+                <td style="padding:.6rem .5rem;">{{ user.created_at }}</td>
+            </tr>
+            <tr>
+                <td style="padding:.6rem .5rem;color:#666;">Token expires</td>
+                <td style="padding:.6rem .5rem;">{{ user.expires_at }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="text-align:center;margin-top:1rem;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Dashboard</a>
+        &nbsp;
+        <a href="{{ url_for('logout') }}" class="btn btn-accent">Log Out</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

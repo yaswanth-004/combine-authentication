@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Auth Learning Hub{% endblock %}</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        :root {
+            --brand:    #2c3e50;
+            --accent:   #eb5424;   /* Auth0 orange */
+            --google:   #4285F4;
+            --success:  #155724;
+            --danger:   #721c24;
+            --info:     #0c5460;
+            --text:     #222;
+            --muted:    #555;
+            --border:   #dee2e6;
+            --bg-light: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column; min-height: 100vh;
+            color: var(--text); background: #fff;
+        }
+
+        /* ── Header & Nav ─────────────────────────── */
+        header {
+            background: var(--brand);
+            padding: 0 2rem;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 60px;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,.25);
+        }
+        .nav-brand {
+            color: #fff; font-size: 1.1rem; font-weight: 700;
+            text-decoration: none; letter-spacing: .5px;
+        }
+        nav { display: flex; align-items: center; gap: 1rem; }
+        nav a {
+            color: rgba(255,255,255,.85); text-decoration: none;
+            font-size: .9rem; font-weight: 500;
+            padding: .3rem .6rem; border-radius: 4px;
+            transition: background .2s, color .2s;
+        }
+        nav a:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+        .nav-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.4);
+            vertical-align: middle; margin-right: 6px;
+        }
+        .btn-logout {
+            background: var(--accent); color: #fff !important;
+            padding: .35rem .8rem !important; border-radius: 20px !important;
+            font-weight: 600 !important; font-size: .85rem !important;
+        }
+        .btn-logout:hover { background: #c94318 !important; }
+
+        /* ── Main ─────────────────────────────────── */
+        main {
+            flex: 1; padding: 2.5rem 2rem;
+            max-width: 1100px; margin: 0 auto; width: 100%;
+        }
+
+        /* ── Flash messages ───────────────────────── */
+        .flash-container { margin-bottom: 1.5rem; }
+        .alert {
+            padding: 12px 16px; margin-bottom: 10px;
+            border-radius: 6px; font-size: .9rem; font-weight: 500;
+            border-left: 4px solid transparent;
+        }
+        .alert-success { background:#d4edda; color:var(--success); border-color:#28a745; }
+        .alert-danger  { background:#f8d7da; color:var(--danger);  border-color:#dc3545; }
+        .alert-info    { background:#d1ecf1; color:var(--info);    border-color:#17a2b8; }
+
+        /* ── Footer ───────────────────────────────── */
+        footer {
+            background: #34495e; color: rgba(255,255,255,.7);
+            text-align: center; padding: 1rem;
+            font-size: .82rem;
+        }
+
+        /* ── Utility cards ────────────────────────── */
+        .card {
+            background: var(--bg-light); border: 1px solid var(--border);
+            border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .card h3 { margin-top: 0; color: var(--brand); }
+
+        /* ── Buttons ──────────────────────────────── */
+        .btn {
+            display: inline-block; padding: .55rem 1.2rem;
+            border-radius: 6px; font-weight: 600; font-size: .9rem;
+            text-decoration: none; border: none; cursor: pointer;
+            transition: opacity .2s;
+        }
+        .btn:hover { opacity: .88; }
+        .btn-primary  { background: var(--brand);  color: #fff; }
+        .btn-accent   { background: var(--accent);  color: #fff; }
+        .btn-google {
+            background: #fff; color: #444;
+            border: 1px solid #dadce0;
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: .6rem 1.4rem;
+        }
+        .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .btn-google:hover { background: #f1f3f4; opacity: 1; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<header>
+    <a href="{{ url_for('home') }}" class="nav-brand">🔐 Auth Learning Hub</a>
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('contact') }}">Resources</a>
+
+        {% if session.get('user_email') %}
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('profile') }}">
+                {% if session.get('user_picture') %}
+                    <img src="{{ session.user_picture }}" class="nav-avatar" alt="avatar">
+                {% endif %}
+                {{ session.get('user_username', 'Profile') }}
+            </a>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Log Out</a>
+        {% else %}
+            <a href="{{ url_for('register') }}">Register</a>
+            <a href="{{ url_for('login') }}" class="btn-logout">Log In</a>
+        {% endif %}
+    </nav>
+</header>
+
+<main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+    <p>&copy; 2026 Auth Learning Hub &nbsp;|&nbsp; OAuth 2.0 · OIDC · JWT · Auth0</p>
+</footer>
+
+</body>
+</html>

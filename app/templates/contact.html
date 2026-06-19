@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Resources — Auth Learning Hub{% endblock %}
+
+{% block content %}
+<h2 style="color:#2c3e50;">Learning Resources & Documentation</h2>
+<p style="color:#555;">Verified guides and tools to deepen your understanding of OAuth 2.0, OIDC, and JWT.</p>
+
+<div class="card">
+    <h3>📚 Official Documentation</h3>
+    <ul style="line-height:2;">
+        <li><a href="https://auth0.com/docs" target="_blank" rel="noopener">Auth0 Developer Docs</a></li>
+        <li><a href="https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce" target="_blank" rel="noopener">Auth0 — PKCE Flow Guide</a></li>
+        <li><a href="https://openid.net/specs/openid-connect-core-1_0.html" target="_blank" rel="noopener">OpenID Connect Core 1.0 Spec</a></li>
+        <li><a href="https://datatracker.ietf.org/doc/html/rfc6749" target="_blank" rel="noopener">OAuth 2.0 RFC 6749</a></li>
+        <li><a href="https://datatracker.ietf.org/doc/html/rfc7636" target="_blank" rel="noopener">PKCE RFC 7636</a></li>
+    </ul>
+</div>
+
+<div class="card">
+    <h3>🛠️ Developer Tools</h3>
+    <ul style="line-height:2;">
+        <li><a href="https://jwt.io" target="_blank" rel="noopener">jwt.io — Decode and verify JWT tokens</a></li>
+        <li><a href="https://developers.google.com/oauthplayground" target="_blank" rel="noopener">Google OAuth Playground</a></li>
+        <li><a href="https://{{ config.AUTH0_DOMAIN }}/.well-known/jwks.json" target="_blank" rel="noopener">Your Auth0 JWKS endpoint (public signing keys)</a></li>
+        <li><a href="https://{{ config.AUTH0_DOMAIN }}/.well-known/openid-configuration" target="_blank" rel="noopener">Your Auth0 OIDC discovery document</a></li>
+    </ul>
+</div>
+
+<div class="card">
+    <h3>📖 Concepts Quick Reference</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:.9rem;">
+        <thead>
+            <tr style="background:#f0f0f0;">
+                <th style="text-align:left;padding:.6rem;">Token</th>
+                <th style="text-align:left;padding:.6rem;">Purpose</th>
+                <th style="text-align:left;padding:.6rem;">Lifetime</th>
+                <th style="text-align:left;padding:.6rem;">Who creates it</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:.6rem;"><strong>Access Token</strong></td>
+                <td style="padding:.6rem;">Call protected APIs</td>
+                <td style="padding:.6rem;">1 day (86400s)</td>
+                <td style="padding:.6rem;">Auth0</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:.6rem;"><strong>Refresh Token</strong></td>
+                <td style="padding:.6rem;">Get new access tokens silently</td>
+                <td style="padding:.6rem;">1 day (rotating)</td>
+                <td style="padding:.6rem;">Auth0</td>
+            </tr>
+            <tr>
+                <td style="padding:.6rem;"><strong>ID Token</strong></td>
+                <td style="padding:.6rem;">Read user identity (email, name)</td>
+                <td style="padding:.6rem;">10 hours</td>
+                <td style="padding:.6rem;">Auth0 via OIDC</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>📬 Contact</h3>
+    <p style="color:#555;">Have questions about the Auth0 setup or deploying to Vercel? Check the README in the GitHub repo, or open an issue.</p>
+</div>
+{% endblock %}

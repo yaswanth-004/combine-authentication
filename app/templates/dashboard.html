@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Auth Learning Hub{% endblock %}
+
+{% block head %}
+<style>
+    .dash-header {
+        display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;
+        padding-bottom: 1.5rem; border-bottom: 1px solid #dee2e6;
+    }
+    .dash-header img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid #2c3e50; }
+    .dash-header .dh-text h2 { margin: 0; color: #2c3e50; }
+    .dash-header .dh-text p  { margin: .25rem 0 0; color: #666; font-size: .9rem; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+    .info-card {
+        background: #fff; border: 1px solid #dee2e6; border-radius: 10px;
+        padding: 1.25rem; position: relative; overflow: hidden;
+    }
+    .info-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0;
+        height: 4px; background: #2c3e50;
+    }
+    .info-card.green::before  { background: #28a745; }
+    .info-card.orange::before { background: #eb5424; }
+    .info-card.blue::before   { background: #007bff; }
+
+    .info-card h4 { margin: 0 0 .75rem; font-size: .82rem; text-transform: uppercase;
+                    letter-spacing: .06em; color: #777; }
+    .info-card .val {
+        font-family: 'Consolas', 'Courier New', monospace;
+        font-size: .82rem; background: #f8f9fa; border: 1px solid #e9ecef;
+        border-radius: 6px; padding: .6rem .8rem;
+        word-break: break-all; color: #333; line-height: 1.5;
+        max-height: 90px; overflow-y: auto;
+    }
+    .info-card .label-big { font-size: 1.4rem; font-weight: 700; color: #2c3e50; }
+
+    .token-section { margin-top: 2rem; }
+    .token-section h3 { color: #2c3e50; margin-bottom: 1rem; }
+    .token-card {
+        background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px;
+        padding: 1rem 1.25rem; margin-bottom: 1rem;
+    }
+    .token-card h4 { margin: 0 0 .5rem; font-size: .9rem; }
+    .token-card .token-val {
+        font-family: monospace; font-size: .75rem; color: #555;
+        word-break: break-all; background: #fff; padding: .5rem;
+        border-radius: 4px; border: 1px solid #e0e0e0;
+        max-height: 70px; overflow-y: auto;
+    }
+    .badge {
+        display: inline-block; padding: .2rem .6rem; border-radius: 12px;
+        font-size: .75rem; font-weight: 600;
+    }
+    .badge-green { background: #d4edda; color: #155724; }
+    .badge-orange { background: #fff3cd; color: #856404; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if user %}
+<div class="dash-header">
+    {% if user.picture %}
+        <img src="{{ user.picture }}" alt="{{ user.username }}">
+    {% else %}
+        <span style="font-size:3.5rem;">👤</span>
+    {% endif %}
+    <div class="dh-text">
+        <h2>{{ user.username }}</h2>
+        <p>{{ user.email }} &nbsp;·&nbsp; Last login: {{ user.updated_at }}</p>
+    </div>
+</div>
+
+<!-- ── Quick-info grid ──────────────────────────── -->
+<div class="grid">
+    <div class="info-card green">
+        <h4>Logged in as</h4>
+        <div class="val">{{ user.email }}</div>
+    </div>
+    <div class="info-card blue">
+        <h4>Display name (from Google)</h4>
+        <div class="val">{{ user.username }}</div>
+    </div>
+    <div class="info-card orange">
+        <h4>Access token expires at (UTC)</h4>
+        <div class="val">{{ user.expires_at }}</div>
+    </div>
+    <div class="info-card">
+        <h4>Account created</h4>
+        <div class="val">{{ user.created_at }}</div>
+    </div>
+</div>
+
+<!-- ── Token details ───────────────────────────── -->
+<div class="token-section">
+    <h3>🔑 Your Tokens (stored in server DB)</h3>
+
+    <div class="token-card">
+        <h4>
+            Access Token &nbsp;
+            <span class="badge badge-green">JWT · RS256</span>
+        </h4>
+        <p style="font-size:.82rem;color:#555;margin:.25rem 0 .5rem;">
+            Short-lived (1 day). Sent in the <code>Authorization: Bearer ...</code>
+            header when calling protected APIs. Signed by Auth0 with RS256 private key.
+        </p>
+        <div class="token-val">{{ user.access_token[:120] }}…</div>
+    </div>
+
+    <div class="token-card">
+        <h4>
+            Refresh Token &nbsp;
+            <span class="badge badge-orange">Rotating</span>
+        </h4>
+        <p style="font-size:.82rem;color:#555;margin:.25rem 0 .5rem;">
+            Long-lived (1 day). Used by the background job to silently get a new
+            access token. If expired → you receive a session-expiry email.
+        </p>
+        <div class="token-val">
+            {% if user.refresh_token %}
+                {{ user.refresh_token[:80] }}…
+            {% else %}
+                <em>Not available — make sure <code>offline_access</code> scope is set in Auth0</em>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:.9rem 1rem;font-size:.82rem;color:#5d4037;margin-top:1rem;">
+        <strong>ℹ️ Why are tokens shown here?</strong><br>
+        This is a learning app — tokens are displayed so you can see the real
+        values. In a production app, never expose tokens in the UI.
+        Use <a href="https://jwt.io" target="_blank" rel="noopener">jwt.io</a>
+        to decode and inspect your access token.
+    </div>
+</div>
+
+{% else %}
+<p>No user found. <a href="{{ url_for('login') }}">Please log in.</a></p>
+{% endif %}
+{% endblock %}

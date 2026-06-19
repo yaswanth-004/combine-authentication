@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Register — Auth Learning Hub{% endblock %}
+
+{% block head %}
+<style>
+    .reg-wrap {
+        max-width: 500px; margin: 2rem auto;
+        background: #fff; border: 1px solid #dee2e6;
+        border-radius: 14px; padding: 2.5rem 2rem;
+        box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    }
+    .reg-wrap h2 { margin-top: 0; color: #2c3e50; }
+    .info-box {
+        background: #fff8e1; border: 1px solid #ffe082;
+        border-radius: 8px; padding: 1rem 1.2rem;
+        font-size: .9rem; color: #5d4037; margin-bottom: 1.5rem;
+    }
+    .step { display: flex; gap: .75rem; margin-bottom: 1rem; align-items: flex-start; }
+    .step-num {
+        background: #2c3e50; color: #fff;
+        width: 26px; height: 26px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem; font-weight: 700; flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .step p { margin: 0; font-size: .9rem; color: #333; }
+    .btn-go {
+        display: block; width: 100%; text-align: center;
+        background: #eb5424; color: #fff;
+        padding: .75rem 1rem; border-radius: 8px;
+        font-weight: 700; font-size: 1rem; text-decoration: none;
+        margin-top: 1.5rem; transition: background .2s;
+    }
+    .btn-go:hover { background: #c94318; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reg-wrap">
+    <h2>Create an Account</h2>
+
+    <div class="info-box">
+        💡 <strong>No sign-up form needed.</strong> Because this app uses
+        <strong>Auth0 Universal Login</strong>, registration happens directly
+        on Auth0's secure hosted page — not here.
+    </div>
+
+    <p style="color:#444; font-size:.92rem; margin-bottom:1.2rem;">
+        Here's how to create your account in 3 clicks:
+    </p>
+
+    <div class="step">
+        <div class="step-num">1</div>
+        <p>Click <strong>"Register via Auth0"</strong> below. You'll be redirected to Auth0's
+           secure login page.</p>
+    </div>
+    <div class="step">
+        <div class="step-num">2</div>
+        <p>Choose <strong>Sign up with Google</strong> (recommended) — or enter an email
+           and password directly on the Auth0 page.</p>
+    </div>
+    <div class="step">
+        <div class="step-num">3</div>
+        <p>Auth0 creates your account, generates your tokens, and redirects you
+           back to your dashboard automatically.</p>
+    </div>
+
+    <div style="background:#f0f7ff;border:1px solid #cce4ff;border-radius:8px;padding:.9rem 1rem;font-size:.82rem;color:#1a4971;margin-top:1rem;">
+        <strong>🔒 What gets stored on our server:</strong><br>
+        Your <strong>email</strong>, <strong>display name</strong>, <strong>profile picture URL</strong>,
+        and encrypted access/refresh tokens. No password is ever stored here —
+        Auth0 and Google handle credential security.
+    </div>
+
+    <a href="{{ url_for('login_email') }}" class="btn-go">
+        Register via Auth0 →
+    </a>
+
+    <p style="text-align:center;margin-top:1rem;font-size:.85rem;color:#777;">
+        Already have an account? <a href="{{ url_for('login') }}" style="color:#eb5424;">Log in →</a>
+    </p>
+</div>
+{% endblock %}

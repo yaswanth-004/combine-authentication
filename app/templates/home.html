@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Home — Auth Learning Hub{% endblock %}
+
+{% block head %}
+<style>
+    .hero {
+        background: linear-gradient(135deg, #2c3e50 0%, #3d566e 100%);
+        color: #fff; border-radius: 12px;
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 2rem;
+    }
+    .hero-text h1 { margin: 0 0 .75rem; font-size: 2rem; line-height: 1.25; }
+    .hero-text p  { margin: 0 0 1.5rem; opacity: .85; font-size: 1.05rem; max-width: 480px; }
+    .hero-badge {
+        font-size: 5rem; flex-shrink: 0;
+        filter: drop-shadow(0 4px 12px rgba(0,0,0,.35));
+    }
+    .topics { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    .topic {
+        border: 1px solid #dee2e6; border-radius: 10px; padding: 1.2rem;
+        transition: box-shadow .2s, transform .2s;
+    }
+    .topic:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); transform: translateY(-2px); }
+    .topic-icon { font-size: 1.8rem; margin-bottom: .5rem; }
+    .topic h4 { margin: .25rem 0; color: #2c3e50; }
+    .topic p  { margin: 0; font-size: .88rem; color: #555; }
+    .welcome-bar {
+        background: #eaf4fb; border: 1px solid #bee5eb;
+        border-radius: 10px; padding: 1rem 1.5rem;
+        display: flex; align-items: center; gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .welcome-bar img { width: 48px; height: 48px; border-radius: 50%; }
+    .welcome-bar .wtext h3 { margin: 0; color: #0c5460; }
+    .welcome-bar .wtext p  { margin: 0; font-size: .88rem; color: #555; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if user %}
+<!-- ── Logged-in view ─────────────────────────── -->
+<div class="welcome-bar">
+    {% if user.picture %}
+        <img src="{{ user.picture }}" alt="{{ user.username }}'s avatar">
+    {% else %}
+        <span style="font-size:2.5rem;">👤</span>
+    {% endif %}
+    <div class="wtext">
+        <h3>Welcome back, {{ user.username }}!</h3>
+        <p>Logged in as <strong>{{ user.email }}</strong> &nbsp;·&nbsp;
+           <a href="{{ url_for('dashboard') }}">Go to Dashboard →</a>
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<div class="hero">
+    <div class="hero-text">
+        <h1>Master Modern<br>Authentication & Authorization</h1>
+        <p>Learn OAuth 2.0, OpenID Connect, JWT, and Auth0 by building a real
+           secure web application — not just reading docs.</p>
+        {% if not user %}
+            <a href="{{ url_for('login') }}" class="btn btn-accent">Get Started with Google →</a>
+            &nbsp;
+            <a href="{{ url_for('register') }}" class="btn btn-primary" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);">Learn More</a>
+        {% else %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-accent">Go to Dashboard →</a>
+        {% endif %}
+    </div>
+    <div class="hero-badge">🔐</div>
+</div>
+
+<h2 style="color:#2c3e50; margin-bottom:1rem;">What you will learn here</h2>
+<div class="topics">
+    <div class="topic">
+        <div class="topic-icon">🔑</div>
+        <h4>OAuth 2.0 + PKCE</h4>
+        <p>The authorization framework that securely delegates access without exposing passwords.</p>
+    </div>
+    <div class="topic">
+        <div class="topic-icon">🪪</div>
+        <h4>OpenID Connect</h4>
+        <p>The identity layer on top of OAuth 2.0 that gives you the user's email and profile.</p>
+    </div>
+    <div class="topic">
+        <div class="topic-icon">🏷️</div>
+        <h4>JWT Tokens</h4>
+        <p>How access tokens, refresh tokens, and ID tokens work — and where each is used.</p>
+    </div>
+    <div class="topic">
+        <div class="topic-icon">🛡️</div>
+        <h4>Auth0 Integration</h4>
+        <p>Using Auth0 as your authorization server with Google as the identity provider.</p>
+    </div>
+    <div class="topic">
+        <div class="topic-icon">♻️</div>
+        <h4>Token Refresh</h4>
+        <p>Automatic silent refresh — users stay logged in without re-entering credentials.</p>
+    </div>
+    <div class="topic">
+        <div class="topic-icon">🚀</div>
+        <h4>Vercel Deployment</h4>
+        <p>Deploy a production-ready Flask app with Auth0 to Vercel — no server management.</p>
+    </div>
+</div>
+{% endblock %}

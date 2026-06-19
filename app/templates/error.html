@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Error — Auth Learning Hub{% endblock %}
+{% block content %}
+<div style="max-width:480px;margin:3rem auto;text-align:center;">
+    <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+    <h2 style="color:#2c3e50;">Something went wrong</h2>
+    <div class="card">
+        <p style="color:#555;margin:0;">{{ message }}</p>
+    </div>
+    <a href="{{ url_for('login') }}" class="btn btn-accent" style="margin-top:1rem;">Try logging in again →</a>
+</div>
+{% endblock %}
