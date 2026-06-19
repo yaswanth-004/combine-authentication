@@ -1,4 +1,10 @@
 {
+  {
+  "buildCommand": "pip install -r requirements.txt",
+  "env": {
+    "PYTHONUNBUFFERED": "1"
+  }
+}
   "version": 2,
   "builds": [
     { "src": "run.py", "use": "@vercel/python" }
