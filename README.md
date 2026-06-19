@@ -35,18 +35,6 @@ cd combine-authentication
 pip install -r requirements.txt
 ```
 
-### 2. Fill in .env
-
-```
-AUTH0_DOMAIN=dev-16cf0iiguw088wbm.au.auth0.com
-AUTH0_CLIENT_ID=UF6Rh8x099aGS3hyij77Sq3Wp6lp6csN
-AUTH0_CLIENT_SECRET=your_secret_here
-AUTH0_CALLBACK_URL=https://combine-authentication.vercel.app/callback
-APP_BASE_URL=https://combine-authentication.vercel.app
-SECRET_KEY=any-long-random-string
-FLASK_SECRET_KEY=same-or-different-long-random-string
-CRON_SECRET=random-secret-for-cron-job
-```
 
 ### 3. Run locally
 
@@ -55,34 +43,6 @@ python run.py
 # Visit http://localhost:5000
 ```
 
-### 4. Deploy to Vercel
-
-```bash
-npm i -g vercel
-vercel
-```
 
 Add all .env values as Vercel Environment Variables in the dashboard.
 
-### 5. Set up daily token refresh (cron-job.org — free)
-
-- URL: `https://combine-authentication.vercel.app/internal/refresh-tokens`
-- Method: POST
-- Header: `X-Cron-Secret: your-cron-secret`
-- Schedule: Once per day
-
-## Auth0 dashboard checklist
-
-- [x] Application type: Regular Web Application
-- [x] Callback URL: `https://combine-authentication.vercel.app/callback`
-- [x] Logout URL: `https://combine-authentication.vercel.app`
-- [x] Web Origins: `https://combine-authentication.vercel.app`
-- [x] Authentication method: Client Secret (Post)
-- [x] Refresh token rotation: ON
-- [x] Google social connection: enabled + connected to this app
-- [x] Scope `offline_access` requested (gives refresh token)
-
-## Google Console checklist
-
-- [x] Redirect URI: `https://dev-16cf0iiguw088wbm.au.auth0.com/login/callback`
-- [x] Client ID + Secret pasted into Auth0 Google connection
