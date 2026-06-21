@@ -12,7 +12,7 @@ class Config:
     # Session
     PERMANENT_SESSION_LIFETIME = timedelta(days=1)
     SESSION_COOKIE_HTTPONLY    = True
-    SESSION_COOKIE_SECURE      = True   # HTTPS on Vercel
+    SESSION_COOKIE_SECURE = os.environ.get("FLASK_ENV") != "development"
     SESSION_COOKIE_SAMESITE    = "Lax"
 
     # Database
