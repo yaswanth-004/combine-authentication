@@ -7,7 +7,7 @@ load_dotenv()
 class Config:
     # Flask
     SECRET_KEY              = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-    FLASK_SECRET_KEY        = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
+   
 
     # Session
     PERMANENT_SESSION_LIFETIME = timedelta(days=1)
