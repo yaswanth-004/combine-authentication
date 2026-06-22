@@ -3,17 +3,20 @@ app/__init__.py
 ---------------
 Flask application factory.
 All routes live here. Uses Auth0 PKCE Authorization Code Flow.
+
+VERCEL FIX: PKCE verifier is encoded inside the `state` param (HMAC-signed),
+so no session or DB storage is needed between /login and /callback.
+Vercel serverless kills the session between requests - this avoids that entirely.
 """
-import os, json, base64, hashlib, secrets, urllib.parse
+import os, json, base64, hashlib, secrets, urllib.parse, hmac
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 
 import requests
 from flask import (Flask, redirect, request, session,
-                   url_for, render_template, flash)
+                   url_for, render_template, flash, make_response)
 from config import Config
 
-# Import DB helpers — path is at project root
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from database import init_db, save_user, get_user_by_email, update_tokens, send_session_expired_email, get_all_users
@@ -26,16 +29,45 @@ from database import init_db, save_user, get_user_by_email, update_tokens, send_
 def _b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
+def _b64url_decode(s: str) -> bytes:
+    s += "=" * (4 - len(s) % 4)
+    return base64.urlsafe_b64decode(s)
+
 def _make_pkce():
     verifier  = _b64url(secrets.token_bytes(32))
     challenge = _b64url(hashlib.sha256(verifier.encode()).digest())
     return verifier, challenge
 
 def _decode_jwt_payload(token: str) -> dict:
-    """Decode JWT payload section without verifying signature (Auth0 already verified it)."""
     part = token.split(".")[1]
     part += "=" * (4 - len(part) % 4)
     return json.loads(base64.urlsafe_b64decode(part))
+
+
+# ---------------------------------------------------------------------------
+# State helpers — encode verifier INTO the state param so no session needed
+# state = base64url( verifier + "." + nonce ) + "." + hmac_signature
+# ---------------------------------------------------------------------------
+
+def _make_state(verifier: str, secret_key: str) -> str:
+    """Pack verifier + random nonce into a signed state string."""
+    nonce   = secrets.token_urlsafe(16)
+    payload = _b64url((verifier + "|" + nonce).encode())
+    sig     = hmac.new(secret_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return payload + "." + sig
+
+def _unpack_state(state: str, secret_key: str):
+    """Verify signature and return verifier, or raise ValueError."""
+    try:
+        payload, sig = state.rsplit(".", 1)
+    except ValueError:
+        raise ValueError("Malformed state")
+    expected = hmac.new(secret_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, sig):
+        raise ValueError("State signature mismatch")
+    raw      = _b64url_decode(payload).decode()
+    verifier = raw.split("|")[0]
+    return verifier
 
 
 # ---------------------------------------------------------------------------
@@ -46,13 +78,13 @@ def init_app():
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config.from_object(Config)
 
-    # Init DB on startup
     init_db()
 
     AUTH0_DOMAIN        = app.config["AUTH0_DOMAIN"]
     AUTH0_CLIENT_ID     = app.config["AUTH0_CLIENT_ID"]
     AUTH0_CLIENT_SECRET = app.config["AUTH0_CLIENT_SECRET"]
     AUTH0_CALLBACK_URL  = app.config["AUTH0_CALLBACK_URL"]
+    SECRET_KEY          = app.config["SECRET_KEY"]
 
     # ------------------------------------------------------------------
     # Login guard decorator
@@ -72,7 +104,6 @@ def init_app():
 
     @app.route("/")
     def open_home():
-        """Home page — public. Shows different content when logged in."""
         user = None
         if "user_email" in session:
             user = get_user_by_email(session["user_email"])
@@ -94,13 +125,13 @@ def init_app():
 
     @app.route("/register")
     def register():
-        """Register page — explains that Auth0 Universal Login handles this."""
         if "user_email" in session:
             return redirect(url_for("dashboard"))
         return render_template("register.html")
 
     # ------------------------------------------------------------------
     # Auth0 login — starts PKCE flow
+    # VERCEL FIX: verifier is packed into `state` (HMAC-signed), not session
     # ------------------------------------------------------------------
 
     @app.route("/login")
@@ -109,21 +140,16 @@ def init_app():
             return redirect(url_for("dashboard"))
 
         verifier, challenge = _make_pkce()
-        state = secrets.token_urlsafe(16)
-        session["pkce_verifier"] = verifier
-        session["oauth_state"]   = state
+        state = _make_state(verifier, SECRET_KEY)   # <-- verifier lives in state, not session
 
         params = {
             "response_type":         "code",
             "client_id":             AUTH0_CLIENT_ID,
             "redirect_uri":          AUTH0_CALLBACK_URL,
-            # openid = ID token, profile = name/picture, email = email,
-            # offline_access = refresh token
             "scope":                 "openid profile email offline_access",
             "state":                 state,
             "code_challenge":        challenge,
             "code_challenge_method": "S256",
-            # This tells Auth0 Universal Login to show Google button
             "connection":            "google-oauth2",
         }
         auth_url = f"https://{AUTH0_DOMAIN}/authorize?" + urllib.parse.urlencode(params)
@@ -131,14 +157,11 @@ def init_app():
 
     @app.route("/login/email")
     def login_email():
-        """Alternate login — shows Auth0 Universal Login page (all options)."""
         if "user_email" in session:
             return redirect(url_for("dashboard"))
 
         verifier, challenge = _make_pkce()
-        state = secrets.token_urlsafe(16)
-        session["pkce_verifier"] = verifier
-        session["oauth_state"]   = state
+        state = _make_state(verifier, SECRET_KEY)
 
         params = {
             "response_type":         "code",
@@ -154,6 +177,7 @@ def init_app():
 
     # ------------------------------------------------------------------
     # Auth0 callback — receives auth code, exchanges for tokens
+    # VERCEL FIX: verifier extracted from state param (no session needed)
     # ------------------------------------------------------------------
 
     @app.route("/callback")
@@ -165,19 +189,21 @@ def init_app():
             flash(f"Login error: {desc}", "danger")
             return redirect(url_for("login"))
 
-        # 2. Validate CSRF state
-        if request.args.get("state") != session.pop("oauth_state", None):
-            flash("Security check failed (state mismatch). Please try again.", "danger")
+        # 2. Extract and validate state (contains verifier)
+        state = request.args.get("state", "")
+        try:
+            verifier = _unpack_state(state, SECRET_KEY)
+        except ValueError as e:
+            flash(f"Security check failed: {e}. Please try again.", "danger")
             return redirect(url_for("login"))
 
-        # 3. Get the auth code and PKCE verifier
-        code     = request.args.get("code")
-        verifier = session.pop("pkce_verifier", None)
-        if not code or not verifier:
+        # 3. Get the auth code
+        code = request.args.get("code")
+        if not code:
             flash("Missing authorization code. Please try again.", "danger")
             return redirect(url_for("login"))
 
-        # 4. Exchange auth code + verifier → tokens (server-to-server, never in browser)
+        # 4. Exchange auth code + verifier → tokens
         token_resp = requests.post(
             f"https://{AUTH0_DOMAIN}/oauth/token",
             json={
@@ -195,23 +221,21 @@ def init_app():
             return redirect(url_for("login"))
 
         tokens        = token_resp.json()
-        access_token  = tokens["access_token"]          # short-lived JWT
-        refresh_token = tokens.get("refresh_token", "") # long-lived
-        id_token      = tokens["id_token"]              # user identity JWT
+        access_token  = tokens["access_token"]
+        refresh_token = tokens.get("refresh_token", "")
+        id_token      = tokens["id_token"]
         expires_in    = tokens.get("expires_in", 86400)
 
-        # 5. Decode ID token payload → extract email + username
-        #    Auth0 already validated the ID token's signature with RS256.
-        #    We decode the payload (middle section) to read the claims.
+        # 5. Decode ID token
         claims   = _decode_jwt_payload(id_token)
         email    = claims.get("email", "")
         username = claims.get("name", "") or email.split("@")[0]
         picture  = claims.get("picture", "")
 
-        # 6. Calculate expiry time
+        # 6. Calculate expiry
         expires_at = (datetime.now(timezone.utc) + timedelta(seconds=expires_in)).isoformat()
 
-        # 7. Save to DB — email + username are unique identifiers
+        # 7. Save to DB
         save_user(
             email=email,
             username=username,
@@ -221,7 +245,7 @@ def init_app():
             expires_at=expires_at,
         )
 
-        # 8. Store email in session (session is server-side signed cookie)
+        # 8. Store email in session
         session.permanent = True
         session["user_email"]    = email
         session["user_username"] = username
@@ -231,7 +255,7 @@ def init_app():
         return redirect(url_for("dashboard"))
 
     # ------------------------------------------------------------------
-    # Protected routes (login_required)
+    # Protected routes
     # ------------------------------------------------------------------
 
     @app.route("/dashboard")
@@ -253,7 +277,6 @@ def init_app():
     @app.route("/logout")
     def logout():
         session.clear()
-        # Auth0 clears its own session and redirects back to our login page
         params = {
             "returnTo":  url_for("login", _external=True),
             "client_id": AUTH0_CLIENT_ID,
@@ -261,8 +284,7 @@ def init_app():
         return redirect(f"https://{AUTH0_DOMAIN}/v2/logout?" + urllib.parse.urlencode(params))
 
     # ------------------------------------------------------------------
-    # Cron endpoint — POST /internal/refresh-tokens
-    # Call this once per day from cron-job.org with header X-Cron-Secret
+    # Cron endpoint
     # ------------------------------------------------------------------
 
     @app.route("/internal/refresh-tokens", methods=["POST"])
@@ -280,12 +302,10 @@ def init_app():
             if exp.tzinfo is None:
                 exp = exp.replace(tzinfo=timezone.utc)
 
-            # Skip if token is still valid for > 1 hour
             if now < exp - timedelta(hours=1):
                 results.append({"email": user["email"], "status": "valid"})
                 continue
 
-            # Try refreshing
             r = requests.post(
                 f"https://{AUTH0_DOMAIN}/oauth/token",
                 json={
@@ -307,7 +327,6 @@ def init_app():
                 )
                 results.append({"email": user["email"], "status": "refreshed"})
             else:
-                # Refresh token expired — notify user by email
                 send_session_expired_email(user["email"], user["username"])
                 results.append({"email": user["email"], "status": "expired — email sent"})
 
