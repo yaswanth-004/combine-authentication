@@ -10,10 +10,13 @@ class Config:
    
 
     # Session
-    PERMANENT_SESSION_LIFETIME = timedelta(days=1)
-    SESSION_COOKIE_HTTPONLY    = True
-    SESSION_COOKIE_SECURE = os.environ.get("FLASK_ENV") != "development"
-    SESSION_COOKIE_SAMESITE    = "Lax"
+
+
+    # Session
+    PERMANENT_SESSION_LIFETIME  = timedelta(days=1)
+    SESSION_COOKIE_HTTPONLY      = True
+    SESSION_COOKIE_SECURE        = True                        # Always True on Vercel (HTTPS)
+    SESSION_COOKIE_SAMESITE      = "None"                      # FIXED: was "Lax"
 
     # Database
     SQLALCHEMY_DATABASE_URI        = os.environ.get("DATABASE_URL", "sqlite:///instance/users.db")
