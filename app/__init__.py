@@ -16,7 +16,7 @@ from config import Config
 # Import DB helpers — path is at project root
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from database import init_db, save_user, get_user_by_email, update_tokens, send_session_expired_email
+from database import init_db, save_user, get_user_by_email, update_tokens, send_session_expired_email, get_all_users
 
 
 # ---------------------------------------------------------------------------
