@@ -83,7 +83,8 @@ def init_app():
     AUTH0_DOMAIN        = app.config["AUTH0_DOMAIN"]
     AUTH0_CLIENT_ID     = app.config["AUTH0_CLIENT_ID"]
     AUTH0_CLIENT_SECRET = app.config["AUTH0_CLIENT_SECRET"]
-    AUTH0_CALLBACK_URL  = app.config["AUTH0_CALLBACK_URL"]
+    # AUTH0_CALLBACK_URL is built per-request so it matches whichever Vercel URL is used
+    _STATIC_CALLBACK_URL = app.config.get("AUTH0_CALLBACK_URL", "")
     SECRET_KEY          = app.config["SECRET_KEY"]
 
     # ------------------------------------------------------------------
@@ -141,6 +142,8 @@ def init_app():
 
         verifier, challenge = _make_pkce()
         state = _make_state(verifier, SECRET_KEY)   # <-- verifier lives in state, not session
+        # Build callback URL from current request host (works for all Vercel preview URLs)
+        AUTH0_CALLBACK_URL = _STATIC_CALLBACK_URL or f"https://{request.host}/callback"
 
         params = {
             "response_type":         "code",
@@ -162,6 +165,7 @@ def init_app():
 
         verifier, challenge = _make_pkce()
         state = _make_state(verifier, SECRET_KEY)
+        AUTH0_CALLBACK_URL = _STATIC_CALLBACK_URL or f"https://{request.host}/callback"
 
         params = {
             "response_type":         "code",
@@ -204,6 +208,8 @@ def init_app():
             return redirect(url_for("login"))
 
         # 4. Exchange auth code + verifier → tokens
+        # Must use same callback URL that was sent in /login
+        callback_url = _STATIC_CALLBACK_URL or f"https://{request.host}/callback"
         token_resp = requests.post(
             f"https://{AUTH0_DOMAIN}/oauth/token",
             json={
@@ -211,7 +217,7 @@ def init_app():
                 "client_id":     AUTH0_CLIENT_ID,
                 "client_secret": AUTH0_CLIENT_SECRET,
                 "code":          code,
-                "redirect_uri":  AUTH0_CALLBACK_URL,
+                "redirect_uri":  callback_url,
                 "code_verifier": verifier,
             },
             timeout=15,
