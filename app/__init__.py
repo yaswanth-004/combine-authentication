@@ -338,4 +338,98 @@ def init_app():
 
         return {"checked": len(results), "results": results}, 200
 
+
+    # ------------------------------------------------------------------
+    # DEBUG ROUTE — visit /debug to see live config & last error
+    # REMOVE THIS AFTER FIXING
+    # ------------------------------------------------------------------
+    @app.route("/debug")
+    def debug():
+        import urllib.parse
+        # Build what /login WOULD send to Auth0
+        verifier, challenge = _make_pkce()
+        state = _make_state(verifier, SECRET_KEY)
+        callback_url = _STATIC_CALLBACK_URL or f"https://{request.host}/callback"
+
+        params = {
+            "response_type":         "code",
+            "client_id":             AUTH0_CLIENT_ID,
+            "redirect_uri":          callback_url,
+            "scope":                 "openid profile email offline_access",
+            "state":                 state,
+            "code_challenge":        challenge,
+            "code_challenge_method": "S256",
+        }
+        auth_url = f"https://{AUTH0_DOMAIN}/authorize?" + urllib.parse.urlencode(params)
+
+        html = f"""
+        <html><body style="font-family:monospace;padding:2rem;background:#f5f5f5">
+        <h2>🔍 Debug Info</h2>
+        <h3>Config Values</h3>
+        <table border=1 cellpadding=6 style="border-collapse:collapse;background:white">
+          <tr><td><b>AUTH0_DOMAIN</b></td><td>{AUTH0_DOMAIN}</td></tr>
+          <tr><td><b>AUTH0_CLIENT_ID</b></td><td>{AUTH0_CLIENT_ID}</td></tr>
+          <tr><td><b>AUTH0_CLIENT_SECRET set?</b></td><td>{"✅ YES (" + str(len(AUTH0_CLIENT_SECRET or "")) + " chars)" if AUTH0_CLIENT_SECRET else "❌ NOT SET"}</td></tr>
+          <tr><td><b>SECRET_KEY</b></td><td>{SECRET_KEY[:8]}... ({len(SECRET_KEY)} chars) {"⚠️ DEFAULT - CHANGE THIS" if SECRET_KEY == "dev-secret-change-me" else "✅ custom"}</td></tr>
+          <tr><td><b>request.host</b></td><td>{request.host}</td></tr>
+          <tr><td><b>callback_url used</b></td><td>{callback_url}</td></tr>
+          <tr><td><b>SESSION_COOKIE_SAMESITE</b></td><td>{app.config.get("SESSION_COOKIE_SAMESITE")}</td></tr>
+          <tr><td><b>SESSION_COOKIE_SECURE</b></td><td>{app.config.get("SESSION_COOKIE_SECURE")}</td></tr>
+        </table>
+
+        <h3>Full Auth URL that /login builds</h3>
+        <div style="word-break:break-all;background:white;padding:1rem;border:1px solid #ccc">
+          <a href="{auth_url}" target="_blank">{auth_url[:120]}...</a>
+        </div>
+
+        <h3>Flash Messages (errors from last request)</h3>
+        <div style="background:white;padding:1rem;border:1px solid #ccc">
+          {"<br>".join([f"<b>[{cat}]</b> {msg}" for cat, msg in get_flashed_messages(with_categories=True)]) or "No flash messages"}
+        </div>
+
+        <h3>Test Token Exchange</h3>
+        <p>Click below to test if Auth0 token endpoint is reachable:</p>
+        <a href="/debug/token-test" style="background:#007bff;color:white;padding:.5rem 1rem;text-decoration:none;border-radius:4px">
+          Test Token Endpoint
+        </a>
+        </body></html>
+        """
+        from flask import get_flashed_messages
+        # re-render with flashed messages
+        messages = get_flashed_messages(with_categories=True)
+        html = html.replace(
+            '"No flash messages"',
+            f'"{"<br>".join([f"[{c}] {m}" for c,m in messages]) or "No flash messages"}"'
+        )
+        return html
+
+    @app.route("/debug/token-test")
+    def debug_token_test():
+        import json as _json
+        r = requests.post(
+            f"https://{AUTH0_DOMAIN}/oauth/token",
+            json={
+                "grant_type":    "authorization_code",
+                "client_id":     AUTH0_CLIENT_ID,
+                "client_secret": AUTH0_CLIENT_SECRET,
+                "code":          "FAKE_CODE_FOR_TEST",
+                "redirect_uri":  f"https://{request.host}/callback",
+                "code_verifier": "FAKE_VERIFIER",
+            },
+            timeout=15,
+        )
+        return f"""<html><body style="font-family:monospace;padding:2rem">
+        <h2>Token Endpoint Test</h2>
+        <p><b>Status:</b> {r.status_code}</p>
+        <p><b>Response:</b></p>
+        <pre style="background:#f0f0f0;padding:1rem">{_json.dumps(r.json(), indent=2)}</pre>
+        <p>✅ If you see "invalid_grant" or "code verifier" error = Auth0 is reachable & client_id/secret are correct</p>
+        <p>❌ If you see "unauthorized_client" or "client not found" = CLIENT_ID or CLIENT_SECRET wrong in Vercel</p>
+        <a href="/debug">← Back to debug</a>
+        </body></html>"""
+
+
     return app
+
+# THIS IS TEMPORARY - REMOVE AFTER DEBUGGING
+# Visit /debug after a failed login to see what went wrong
