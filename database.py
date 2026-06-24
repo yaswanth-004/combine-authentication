@@ -13,7 +13,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 USE_POSTGRES  = bool(DATABASE_URL)
 
 # ── SQLite fallback (local dev) ──────────────────────────────────────────────
-SQLITE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance", "users.db")
+SQLITE_PATH = "/tmp/users.db"
 
 def _pg():
     import psycopg2, psycopg2.extras
@@ -22,7 +22,6 @@ def _pg():
     return conn
 
 def _sqlite():
-    os.makedirs(os.path.dirname(SQLITE_PATH), exist_ok=True)
     conn = sqlite3.connect(SQLITE_PATH)
     conn.row_factory = sqlite3.Row
     return conn
